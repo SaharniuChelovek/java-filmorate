@@ -94,6 +94,22 @@ public class FilmController {
             throw new ValidationException("Продолжительность должна быть положительным числом");
         }
 
+        if (newFilm.getName() != null) {
+            oldFilm.setName(newFilm.getName());
+        }
+
+        if (newFilm.getDescription() != null) {
+            oldFilm.setDescription(newFilm.getDescription());
+        }
+
+        if (newFilm.getReleaseDate() != null) {
+            oldFilm.setReleaseDate(newFilm.getReleaseDate());
+        }
+
+        if (newFilm.getDuration() > 0) {
+            oldFilm.setDuration(newFilm.getDuration());
+        }
+
 
         log.info("Обновлен фильм {}", oldFilm);
         return oldFilm;

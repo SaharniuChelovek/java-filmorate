@@ -123,6 +123,15 @@ public class UserController {
         if (newUser.getLogin() != null) {
             oldUser.setLogin(newUser.getLogin());
         }
+
+        if (newUser.getEmail() != null) {
+            oldUser.setEmail(newUser.getEmail());
+        }
+
+        if (newUser.getBirthday() != null) {
+            oldUser.setBirthday(newUser.getBirthday());
+        }
+
         log.info("Обновлен пользователь {}", oldUser);
         return oldUser;
     }
