@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +17,9 @@ import java.util.*;
 @RequiredArgsConstructor
 public class FilmController {
 
-    LocalDate dateOfMovie = LocalDate.of(1895, 12, 28);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final LocalDate DATE_OF_MOVIE = LocalDate.of(1895, 12, 28);
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final int DURATION_MAX_LENGTH = 200;
     private final Map<Long, Film> films = new HashMap<>();
 
     @GetMapping
@@ -26,33 +28,21 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
+    public Film create(@Valid @RequestBody Film film) {
         log.info("Создание фильма {}", film);
-        if (film.getName() == null || film.getName().isBlank()) {
-            log.error("Название фильма пустое");
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
 
-        if (film.getReleaseDate().isBefore(dateOfMovie)) {
+        if (film.getReleaseDate().isBefore(DATE_OF_MOVIE)) {
             log.error("Дата фильма до дня кино");
-            throw new ValidationException("Дата фильма должна быть после " + dateOfMovie.format(formatter));
+            throw new ValidationException("Дата фильма должна быть после " + DATE_OF_MOVIE.format(FORMATTER));
         }
 
         if (film.getDescription().length() > 200) {
-            log.error("Описание больше 200 символов");
-            throw new ValidationException("Описание не должно превышать 200 симвлов");
+            log.error("Описание больше {} символов", DURATION_MAX_LENGTH);
+            throw new ValidationException("Описание не должно превышать " + DURATION_MAX_LENGTH + " симвoлов");
         }
-
-        if (film.getDuration() < 0) {
-            log.error("Продолжительность фильма меньше нуля");
-            throw new ValidationException("Продолжительность должна быть положительным числом");
-        }
-
 
         // заполняем данные
         film.setId(getNextId());
-
-
         films.put(film.getId(), film);
         log.info("Создан фильм {}", film);
         return film;
@@ -73,26 +63,6 @@ public class FilmController {
         }
 
         Film oldFilm = films.get(newFilm.getId());
-
-        if (oldFilm.getName() == null || oldFilm.getName().isBlank()) {
-            log.error("Пустое название фильма на этапе обновления");
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
-
-        if (oldFilm.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            log.error("Дата фильма до дня кино");
-            throw new ValidationException("Дата фильма " + dateOfMovie.format(formatter));
-        }
-
-        if (oldFilm.getDescription().length() > 200) {
-            log.error("Описание больше 200 символов");
-            throw new ValidationException("Описание не должно превышать 200 симвлов");
-        }
-
-        if (oldFilm.getDuration() < 0) {
-            log.error("Продолжительность меньше нуля");
-            throw new ValidationException("Продолжительность должна быть положительным числом");
-        }
 
         if (newFilm.getName() != null) {
             oldFilm.setName(newFilm.getName());

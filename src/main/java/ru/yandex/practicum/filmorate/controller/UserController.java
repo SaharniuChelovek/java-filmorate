@@ -7,7 +7,6 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,31 +28,11 @@ public class UserController {
         // проверка email
         log.info("Создается пользователь {}", user);
 
-        if (user.getEmail() == null || user.getEmail().isBlank()) {
-            log.error("не указан имейл");
-            throw new ValidationException("Должен быть указан email");
-        }
-
-        if (!user.getEmail().contains("@")) {
-            log.error("в имейле отсутствует символ @");
-            throw new ValidationException("В почте должен быть указан символ '@'");
-        }
-
-        if (user.getEmail().startsWith("@") || user.getEmail().endsWith("@")) {
-            log.error("символ @ не на том месте");
-            throw new ValidationException("Некорректный email");
-        }
-
         if (emailExists(user.getEmail())) {
             log.error("попытка использовать имейл, который уже используется");
             throw new ValidationException("Этот email уже используется");
         }
         //проверка login
-        if (user.getLogin() == null || user.getLogin().isBlank()) {
-            log.error("попытка использования пустого логина");
-            throw new ValidationException("Логин не может быть пустым");
-        }
-
         if (user.getLogin().contains(" ")) {
             log.error("попытка ввода логина с пробелами");
             throw new ValidationException("В логине не должны быть пробелы");
@@ -63,16 +42,6 @@ public class UserController {
             String login = user.getLogin();
             user.setName(login);
             log.info("Имя было пустым, поэтому вместо него используется логин");
-        }
-        //проверка даты рождения
-        if (user.getBirthday() == null) {
-            log.error("Попытка использования пустой даты");
-            throw new ValidationException("дата рождения должна быть запонена");
-        }
-
-        if (user.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Попытка использования даты из будущего");
-            throw new ValidationException("дата рождения не может быть в будущем");
         }
 
         // заполняем данные
@@ -118,7 +87,6 @@ public class UserController {
         if (newUser.getName() != null) {
             oldUser.setName(newUser.getName());
         }
-
 
         if (newUser.getLogin() != null) {
             oldUser.setLogin(newUser.getLogin());
