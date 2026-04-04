@@ -1,123 +1,70 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+
 
 @Slf4j
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserService userService;
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
+        return userService.findAll();
     }
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
-        // проверка email
-        log.info("Создается пользователь {}", user);
-
-        if (emailExists(user.getEmail())) {
-            log.error("попытка использовать имейл, который уже используется");
-            throw new ValidationException("Этот email уже используется");
-        }
-        //проверка login
-        if (user.getLogin().contains(" ")) {
-            log.error("попытка ввода логина с пробелами");
-            throw new ValidationException("В логине не должны быть пробелы");
-        }
-        //замена имени если оно пустое
-        if (user.getName() == null || user.getName().isBlank()) {
-            String login = user.getLogin();
-            user.setName(login);
-            log.info("Имя было пустым, поэтому вместо него используется логин");
-        }
-
-        // заполняем данные
-        user.setId(getNextId());
-
-        log.info("Пользоатель {} успешно создан", user);
-        users.put(user.getId(), user);
-        return user;
+        return userService.create(user);
     }
 
     @PutMapping
     public User update(@RequestBody User newUser) throws ValidationException {
-        log.info("Обновление пользоввателя {}", newUser);
-        // проверка id
-        if (newUser.getId() == null) {
-            log.error("id не указан");
-            throw new ValidationException("Id должен быть указан");
-        }
-
-        if (!users.containsKey(newUser.getId())) {
-            log.error("пользователя по заданному id не нашли");
-            throw new ValidationException("Пользователь не найден");
-        }
-
-        User oldUser = users.get(newUser.getId());
-
-        // проверка email (если он меняется)
-        if (newUser.getEmail() != null) {
-            if (emailExists(newUser.getEmail()) &&
-                    !newUser.getEmail().equals(oldUser.getEmail())) {
-                log.error("Попытка использования уже использованной почты на этапе апдейта");
-                throw new ValidationException("Этот email уже используется");
-            }
-            oldUser.setEmail(newUser.getEmail());
-        }
-
-        if (newUser.getLogin() != null && newUser.getLogin().contains(" ")) {
-            log.error("пробелы в логине на этапе апдейта");
-            throw new ValidationException("В логине не должны быть пробелы");
-        }
-
-        // обновление имени
-        if (newUser.getName() != null) {
-            oldUser.setName(newUser.getName());
-        }
-
-        if (newUser.getLogin() != null) {
-            oldUser.setLogin(newUser.getLogin());
-        }
-
-        if (newUser.getEmail() != null) {
-            oldUser.setEmail(newUser.getEmail());
-        }
-
-        if (newUser.getBirthday() != null) {
-            oldUser.setBirthday(newUser.getBirthday());
-        }
-
-        log.info("Обновлен пользователь {}", oldUser);
-        return oldUser;
+        return userService.update(newUser);
     }
 
-    // проверка существования email
-    private boolean emailExists(String email) {
-        return users.values().stream()
-                .anyMatch(user -> user.getEmail().equals(email));
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable Long id) {
+        return userService.getUserById(id);
     }
 
-    // генерация id
-    private Long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        userService.delete(id);
+    }
+
+    @PutMapping("/{id}/friends/{friend_Id}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friend_Id) {
+        userService.addFriend(id, friend_Id);
+    }
+
+    @DeleteMapping("/{id}/friends/{friend_Id}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friend_Id) {
+        userService.removeFriend(id, friend_Id);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable Long id) {
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{friend_Id}")
+    public List<User> getCommonFriends(@PathVariable Long id,
+                                       @PathVariable Long friend_Id) {
+        return userService.getCommonFriends(id, friend_Id);
     }
 }

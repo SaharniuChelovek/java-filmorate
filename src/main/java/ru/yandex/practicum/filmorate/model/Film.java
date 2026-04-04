@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 
 @Data
@@ -31,4 +32,6 @@ public class Film {
     @NotNull
     @Min(0)
     private Integer duration;
+
+    private Set<Long> likes;
 }
