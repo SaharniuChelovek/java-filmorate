@@ -19,26 +19,23 @@ public class UserService {
     public void addFriend(Long userId, Long friendId) {
         User user = userStorage.getUserById(userId);
         //проверка на существование пользователя
-        userStorage.getUserById(friendId);
+        User friend = userStorage.getUserById(friendId);
 
         boolean added = user.getFriends().add(friendId);
 
         if (!added) {
             throw new ValidationException("Пользователь уже в друзьях");
         }
+
+        friend.getFriends().add(userId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        User user = userStorage.getUserById(userId);
-        //проверка что пользователь существует
-        userStorage.getUserById(friendId);
-
-        if (!user.getFriends().contains(friendId)) {
-            throw new ValidationException("Попытка удалить из списка друзей человека, " +
-                    "которого нет в данном списке друзей");
-        }
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
 
         user.getFriends().remove(friendId);
+        friend.getFriends().remove(userId);
     }
 
     public List<User> getFriends(Long userId) {
