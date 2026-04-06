@@ -54,11 +54,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Film update(Film newFilm) {
         log.info("Апдейт фильма {}", newFilm);
-        // проверка id
-        if (newFilm.getId() == null) {
-            log.error("не указан id фильма");
-            throw new NotFoundException("Id должен быть указан");
-        }
+
 
         if (!films.containsKey(newFilm.getId())) {
             log.error("Не найден фильм");
@@ -103,11 +99,6 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public void delete(Long id) {
         log.info("Удаление фильма с id {}", id);
-
-        if (!films.containsKey(id)) {
-            log.error("Фильм с id {} не найден", id);
-            throw new NotFoundException("Фильм не найден");
-        }
 
         films.remove(id);
         log.info("Фильм с id {} удален", id);
