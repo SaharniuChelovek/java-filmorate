@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -15,9 +16,9 @@ import java.time.LocalDate;
 public class User {
 
     private Long id;
-
-    @NotBlank
     @NotNull
+    @NotBlank(message = "Логин не может быть пустым или состоять только из пробелов")
+    @NoSpaces
     private String login;
 
     private String name;
@@ -29,4 +30,6 @@ public class User {
     @NotNull
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
+
+    private Set<Long> friends;
 }
