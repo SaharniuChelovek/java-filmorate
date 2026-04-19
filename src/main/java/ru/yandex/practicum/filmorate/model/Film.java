@@ -33,5 +33,11 @@ public class Film {
     @Min(0)
     private Integer duration;
 
+    @NotNull
+    private String genre;
+
+    @NotNull
+    private String rating;
+
     private Set<Long> likes;
 }
