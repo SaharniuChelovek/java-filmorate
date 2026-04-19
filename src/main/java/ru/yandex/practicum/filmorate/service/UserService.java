@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
-
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,15 +23,20 @@ public class UserService {
         //проверка на существование пользователя
         User friend = userStorage.getUserById(friendId);
 
-        boolean added = user.getFriends().add(friendId);
-
-        if (!added) {
-            log.info("Пользователь уже в друзьях");
-            throw new ValidationException("Пользователь уже в друзьях");
+        if (user.getFriends().containsKey(friendId)) {
+            throw new ValidationException("Запрос уже отправлен");
         }
 
-        friend.getFriends().add(userId);
-        log.info("Друг добавлен");
+        user.getFriends().put(friendId, FriendshipStatus.PENDING);
+        friend.getFriends().put(userId, FriendshipStatus.PENDING);
+    }
+
+    public void confirmFriend(Long userId, Long friendId) {
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+
+        user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
+        friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
     }
 
     public void removeFriend(Long userId, Long friendId) {
@@ -44,10 +49,12 @@ public class UserService {
     }
 
     public List<User> getFriends(Long userId) {
-        log.info("Получаем список друзей");
-        User user = userStorage.getUserById(userId);
-        return user.getFriends().stream()
-                .map(userStorage::getUserById)
+        log.info("Получаем список друзей(подтвержденных)");
+        User user = getUserById(userId);
+
+        return user.getFriends().entrySet().stream()
+                .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
+                .map(entry -> userStorage.getUserById(entry.getKey()))
                 .toList();
     }
 
@@ -56,8 +63,9 @@ public class UserService {
         User user = userStorage.getUserById(userId);
         User otherUser = userStorage.getUserById(otherId);
 
-        return user.getFriends().stream()
-                .filter(otherUser.getFriends()::contains)
+        return user.getFriends().keySet().stream()
+                .filter(id -> user.getFriends().get(id) == FriendshipStatus.CONFIRMED)
+                .filter(id -> otherUser.getFriends().get(id) == FriendshipStatus.CONFIRMED)
                 .map(userStorage::getUserById)
                 .toList();
     }
