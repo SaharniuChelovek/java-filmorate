@@ -111,7 +111,7 @@ public class UserDbStorage implements UserStorage {
             return;
 
         } catch (EmptyResultDataAccessException e) {
-
+            log.debug("Заявка от пользователя {} к {} не найдена, идем дальше", userId, friendId);
         }
 
         String checkReverseSql = "SELECT status FROM friendships WHERE " +
