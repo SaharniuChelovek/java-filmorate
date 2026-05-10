@@ -28,7 +28,7 @@ public class FilmController {
     }
 
     @PutMapping
-    public Film update(@RequestBody Film newFilm) throws ValidationException {
+    public Film update(@Valid @RequestBody Film newFilm) throws ValidationException {
         return filmService.update(newFilm);
     }
 

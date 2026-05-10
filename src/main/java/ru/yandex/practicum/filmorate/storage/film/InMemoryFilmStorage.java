@@ -11,8 +11,10 @@ import ru.yandex.practicum.filmorate.model.Film;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -103,6 +105,31 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.remove(id);
         log.info("Фильм с id {} удален", id);
     }
+
+    @Override
+    public void addLike(Long userid, Long filmid) {
+        Film film = getFilmById(filmid);
+        log.info("Пользователь поставил лайк фильму");
+        film.getLikes().add(userid);
+    }
+
+    @Override
+    public void removeLike(Long userid, Long filmid) {
+        Film film = getFilmById(filmid);
+        film.getLikes().remove(userid);
+        log.info("Пользователь убрал лайк с фильма");
+    }
+
+    @Override
+    public List<Film> getPopularFilms(int count) {
+        log.info("Получаем список {} популярных фильмов", count);
+        return films.values().stream()
+                .sorted(Comparator.comparingInt((Film film) -> film.getLikes().size())
+                        .reversed())
+                .limit(count)
+                .toList();
+    }
+
 
     private Long getNextId() {
         long currentMaxId = films.keySet()
