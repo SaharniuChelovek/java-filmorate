@@ -14,7 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class Film {
 
-    // Без аннотаций - генерируется БД
+
     private Long id;
 
     @NotBlank(message = "Название не может быть пустым")

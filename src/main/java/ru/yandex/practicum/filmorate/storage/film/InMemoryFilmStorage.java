@@ -21,8 +21,10 @@ import java.util.Map;
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
 
-    private static final LocalDate DATE_OF_MOVIE = LocalDate.of(1895, 12, 28);
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final LocalDate DATE_OF_MOVIE =
+            LocalDate.of(1895, 12, 28);
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final int DURATION_MAX_LENGTH = 200;
     private final Map<Long, Film> films = new HashMap<>();
 
@@ -37,17 +39,19 @@ public class InMemoryFilmStorage implements FilmStorage {
 
         if (film.getReleaseDate().isBefore(DATE_OF_MOVIE)) {
             log.error("Дата фильма до дня кино");
-            throw new ValidationException("Дата фильма должна быть после " + DATE_OF_MOVIE.format(FORMATTER));
+            throw new ValidationException("Дата фильма должна быть после "
+                    + DATE_OF_MOVIE.format(FORMATTER));
         }
 
         if (film.getDescription().length() > 200) {
             log.error("Описание больше {} символов", DURATION_MAX_LENGTH);
-            throw new ValidationException("Описание не должно превышать " + DURATION_MAX_LENGTH + " симвoлов");
+            throw new ValidationException("Описание не должно превышать "
+                    + DURATION_MAX_LENGTH + " симвoлов");
         }
 
         // заполняем данные
         film.setId(getNextId());
-        film.setLikes(new HashSet<>()); //при создании фильма создаем список лайков
+        film.setLikes(new HashSet<>());
         films.put(film.getId(), film);
         log.info("Создан фильм {}", film);
         return film;
@@ -124,12 +128,12 @@ public class InMemoryFilmStorage implements FilmStorage {
     public List<Film> getPopularFilms(int count) {
         log.info("Получаем список {} популярных фильмов", count);
         return films.values().stream()
-                .sorted(Comparator.comparingInt((Film film) -> film.getLikes().size())
+                .sorted(Comparator.comparingInt((Film film) ->
+                                film.getLikes().size())
                         .reversed())
                 .limit(count)
                 .toList();
     }
-
 
     private Long getNextId() {
         long currentMaxId = films.keySet()

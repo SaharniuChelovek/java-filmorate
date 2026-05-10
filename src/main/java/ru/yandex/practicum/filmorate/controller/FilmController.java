@@ -9,7 +9,6 @@ import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.*;
 
-
 @RestController
 @RequestMapping("/films")
 @RequiredArgsConstructor
@@ -28,7 +27,8 @@ public class FilmController {
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody Film newFilm) throws ValidationException {
+    public Film update(@Valid @RequestBody Film newFilm)
+            throws ValidationException {
         return filmService.update(newFilm);
     }
 
@@ -53,7 +53,8 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10")
+                                      int count) {
         return filmService.getPopularFilms(count);
     }
 }

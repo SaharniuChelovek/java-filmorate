@@ -88,7 +88,8 @@ public class UserService {
         try {
             return userStorage.update(newUser);
         } catch (DataIntegrityViolationException e) {
-            log.error("Попытка использовать уже существующий email при обновлении");
+            log.error("Попытка использовать уже существующий email " +
+                    "при обновлении");
             throw new ValidationException("Этот email уже используется");
         }
     }

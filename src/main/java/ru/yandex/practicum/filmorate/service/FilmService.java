@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.storage.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -15,20 +18,28 @@ import java.util.List;
 @Slf4j
 @Service
 public class FilmService {
-    private static final LocalDate DATE_OF_MOVIE = LocalDate.of(1895, 12, 28);
+    private static final LocalDate DATE_OF_MOVIE = LocalDate.of(1895,
+            12, 28);
     private static final int DURATION_MAX_LENGTH = 200;
 
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
+    private final MpaStorage mpaStorage;
+    private final GenreStorage genreStorage;
 
     public FilmService(@Qualifier("userDbStorage") UserStorage userStorage,
-                       @Qualifier("filmDbStorage") FilmStorage filmStorage) {
+                       @Qualifier("filmDbStorage") FilmStorage filmStorage,
+                       final MpaStorage mpaStorage,
+                       final GenreStorage genreStorage) {
         this.userStorage = userStorage;
         this.filmStorage = filmStorage;
+        this.mpaStorage = mpaStorage;
+        this.genreStorage = genreStorage;
     }
 
     public void addLike(Long filmId, Long userId) {
-        log.info("Добавление лайка фильму {} от пользователя {}", filmId, userId);
+        log.info("Добавление лайка фильму {} от пользователя {}",
+                filmId, userId);
         // Проверяем существование
         filmStorage.getFilmById(filmId);
         userStorage.getUserById(userId);
@@ -55,6 +66,18 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+
+        if (film.getMpa() != null) {
+            mpaStorage.getById(film.getMpa().getId());
+            // Если не найдет, кинет NotFoundException
+        }
+
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            for (Genre genre : film.getGenres()) {
+                genreStorage.getById(genre.getId());
+            }
+        }
+
         return filmStorage.create(film);
     }
 
@@ -62,9 +85,18 @@ public class FilmService {
         if (newFilm.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
-        // Проверяем, существует ли фильм (выбросит NotFoundException, если нет)
-        filmStorage.getFilmById(newFilm.getId());
 
+        // Такая же проверка для обновления!
+        if (newFilm.getMpa() != null) {
+            mpaStorage.getById(newFilm.getMpa().getId());
+        }
+        if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
+            for (Genre genre : newFilm.getGenres()) {
+                genreStorage.getById(genre.getId());
+            }
+        }
+        // Проверка что фильм существует
+        filmStorage.getFilmById(newFilm.getId());
         validateFilm(newFilm);
         return filmStorage.update(newFilm);
     }
@@ -77,13 +109,16 @@ public class FilmService {
         filmStorage.delete(id);
     }
 
-    // Валидация вынесена в сервис
     private void validateFilm(Film film) {
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(DATE_OF_MOVIE)) {
-            throw new ValidationException("Дата релиза должна быть не раньше " + DATE_OF_MOVIE);
+        if (film.getReleaseDate() != null && film.getReleaseDate()
+                .isBefore(DATE_OF_MOVIE)) {
+            throw new ValidationException("Дата релиза должна быть не раньше "
+                    + DATE_OF_MOVIE);
         }
-        if (film.getDescription() != null && film.getDescription().length() > DURATION_MAX_LENGTH) {
-            throw new ValidationException("Максимальная длина описания — " + DURATION_MAX_LENGTH + " символов");
+        if (film.getDescription() != null && film.getDescription().length()
+                > DURATION_MAX_LENGTH) {
+            throw new ValidationException("Максимальная длина описания — "
+                    + DURATION_MAX_LENGTH + " символов");
         }
     }
 }

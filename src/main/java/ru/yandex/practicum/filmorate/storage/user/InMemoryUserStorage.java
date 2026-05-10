@@ -27,7 +27,6 @@ public class InMemoryUserStorage implements UserStorage {
         return users.values();
     }
 
-
     @Override
     public User create(User user) {
 
@@ -92,7 +91,8 @@ public class InMemoryUserStorage implements UserStorage {
 
         if (!users.containsKey(id)) {
             log.error("Пользователь по id {} не найден", id);
-            throw new NotFoundException("Пользователь по id " + id + " не найден");
+            throw new NotFoundException("Пользователь по id " + id
+                    + " не найден");
         }
         log.info("Пользователь по id {} найден, возвращаем", id);
         return users.get(id);
@@ -135,14 +135,12 @@ public class InMemoryUserStorage implements UserStorage {
         friend.getFriends().put(userId, FriendshipStatus.PENDING);
     }
 
-
     public void removeFriend(Long userId, Long friendId) {
         User user = getUserById(userId);
         User friend = getUserById(friendId);
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
     }
-
 
     public List<User> getFriends(Long userId) {
         User user = getUserById(userId);
@@ -160,7 +158,8 @@ public class InMemoryUserStorage implements UserStorage {
         return user.getFriends().entrySet().stream()
                 .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
                 .map(Map.Entry::getKey)
-                .filter(id -> otherUser.getFriends().get(id) == FriendshipStatus.CONFIRMED)
+                .filter(id -> otherUser.getFriends().get(id)
+                        == FriendshipStatus.CONFIRMED)
                 .map(this::getUserById)
                 .toList();
     }

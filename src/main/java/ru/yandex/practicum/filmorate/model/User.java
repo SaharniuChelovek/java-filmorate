@@ -18,7 +18,8 @@ public class User {
 
     private Long id;
     @NotNull
-    @NotBlank(message = "Логин не может быть пустым или состоять только из пробелов")
+    @NotBlank(message = "Логин не может быть пустым или состоять " +
+            "только из пробелов")
     @NoSpaces
     private String login;
 
