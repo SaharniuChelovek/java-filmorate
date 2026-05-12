@@ -75,12 +75,12 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User getUserById(Long id) {
         String sql = "SELECT * FROM users WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, new UserMapper(), id);
-        } catch (EmptyResultDataAccessException e) {
+        List<User> users = jdbcTemplate.query(sql, new UserMapper(), id);
+        if (users.isEmpty()) {
             throw new NotFoundException("Пользователь с id " + id
                     + " не найден");
         }
+        return users.get(0);
     }
 
     @Override
@@ -95,7 +95,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        // 1. Проверяем, есть ли уже МОЯ заявка к нему
+
         String checkMySql = "SELECT status FROM friendships WHERE user_id = ?" +
                 " AND friend_id = ?";
         try {
@@ -111,7 +111,8 @@ public class UserDbStorage implements UserStorage {
             return;
 
         } catch (EmptyResultDataAccessException e) {
-            log.debug("Заявка от пользователя {} к {} не найдена, идем дальше", userId, friendId);
+            log.debug("Заявка от пользователя {} к {} не найдена, идем дальше",
+                    userId, friendId);
         }
 
         String checkReverseSql = "SELECT status FROM friendships WHERE " +

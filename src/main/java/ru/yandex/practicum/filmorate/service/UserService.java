@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -56,19 +55,12 @@ public class UserService {
     }
 
     public User create(User user) {
-        // Замена имени если оно пустое
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
             log.info("Имя было пустым, вместо него используется логин");
         }
 
-        try {
-            return userStorage.create(user);
-        } catch (DataIntegrityViolationException e) {
-
-            log.error("Попытка использовать уже существующий email");
-            throw new ValidationException("Этот email уже используется");
-        }
+        return userStorage.create(user);
     }
 
     public User update(User newUser) {
@@ -77,21 +69,13 @@ public class UserService {
             throw new ValidationException("Id должен быть указан");
         }
 
-        // Проверка, что пользователь существует
         userStorage.getUserById(newUser.getId());
 
-        // Если имя пришло пустым, подставляем логин
         if (newUser.getName() == null || newUser.getName().isBlank()) {
             newUser.setName(newUser.getLogin());
         }
 
-        try {
-            return userStorage.update(newUser);
-        } catch (DataIntegrityViolationException e) {
-            log.error("Попытка использовать уже существующий email " +
-                    "при обновлении");
-            throw new ValidationException("Этот email уже используется");
-        }
+        return userStorage.update(newUser);
     }
 
     public User getUserById(Long id) {

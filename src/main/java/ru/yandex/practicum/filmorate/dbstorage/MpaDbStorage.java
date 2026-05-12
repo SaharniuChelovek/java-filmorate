@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.storage.MpaStorage;
 
 import java.util.Collection;
+import java.util.List;
 
 @Component
 public class MpaDbStorage implements MpaStorage {
@@ -31,15 +32,21 @@ public class MpaDbStorage implements MpaStorage {
     @Override
     public Mpa getById(int id) {
         String sql = "SELECT * FROM ratings WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
-                    Mpa.builder()
-                            .id(rs.getInt("id"))
-                            .name(rs.getString("name"))
-                            .build(), id);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+
+        // Передаем лямбду-маппер вторым аргументом в метод query()
+        List<Mpa> mpaList = jdbcTemplate.query(sql, (rs, rowNum) ->
+                        Mpa.builder()
+                                .id(rs.getInt("id"))
+                                .name(rs.getString("name"))
+                                .build()
+                , id);
+
+        if (mpaList.isEmpty()) {
             throw new NotFoundException("Рейтинг MPA с id " + id
                     + " не найден");
         }
+
+        return mpaList.get(0);
     }
+
 }

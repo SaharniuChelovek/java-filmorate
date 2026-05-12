@@ -2,14 +2,12 @@ package ru.yandex.practicum.filmorate.dbstorage;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mappers.FilmMapper;
-import ru.yandex.practicum.filmorate.mappers.GenreMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
@@ -30,13 +28,10 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> findAll() {
-
-        String sql = "SELECT f.*, r.name AS mpa_name FROM films f LEFT" +
-                " JOIN ratings r ON f.rating_id = r.id";
+        String sql = "SELECT f.*, r.name AS mpa_name FROM films f LEFT JOIN " +
+                "ratings r ON f.rating_id = r.id";
         List<Film> films = jdbcTemplate.query(sql, new FilmMapper());
-
-
-        films.forEach(this::loadFilmDetails);
+        loadFilmDetailsBatch(films); // Используем пакетную загрузку
         return films;
     }
 
@@ -87,20 +82,22 @@ public class FilmDbStorage implements FilmStorage {
         jdbcTemplate.update(deleteGenresSql, newFilm.getId());
         saveGenres(newFilm);
 
-        return getFilmById(newFilm.getId());
+        return newFilm;
     }
 
     @Override
     public Film getFilmById(Long id) {
-        String sql = "SELECT f.*, r.name AS mpa_name FROM films f LEFT JOIN " +
-                "ratings r ON f.rating_id = r.id WHERE f.id = ?";
-        try {
-            Film film = jdbcTemplate.queryForObject(sql, new FilmMapper(), id);
-            loadFilmDetails(film);
-            return film;
-        } catch (EmptyResultDataAccessException e) {
+        String sql = "SELECT f.*, r.name AS mpa_name FROM films f LEFT JOIN ratings r ON f.rating_id = r.id WHERE f.id = ?";
+
+        // ПО КОММЕНТАРИЮ РЕВЬЮЕРА: используем query() без try-catch
+        List<Film> films = jdbcTemplate.query(sql, new FilmMapper(), id);
+        if (films.isEmpty()) {
             throw new NotFoundException("Фильм с id " + id + " не найден");
         }
+
+        Film film = films.get(0);
+        loadFilmDetailsBatch(List.of(film)); // Для одного фильма тоже используем батч-метод, чтобы не дублировать код
+        return film;
     }
 
     @Override
@@ -120,8 +117,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     public List<Film> getPopularFilms(int count) {
-        String sql = "SELECT f.*, r.name AS mpa_name, COUNT(fl.user_id) AS " +
-                "likes_count " +
+        String sql = "SELECT f.*, r.name AS mpa_name, COUNT(fl.user_id) AS likes_count " +
                 "FROM films f " +
                 "LEFT JOIN ratings r ON f.rating_id = r.id " +
                 "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
@@ -129,7 +125,7 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY likes_count DESC " +
                 "LIMIT ?";
         List<Film> films = jdbcTemplate.query(sql, new FilmMapper(), count);
-        films.forEach(this::loadFilmDetails);
+        loadFilmDetailsBatch(films); // ПО КОММЕНТАРИЮ РЕВЬЮЕРА: пакетная загрузка вместо цикла
         return films;
     }
 
@@ -146,21 +142,45 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private void loadFilmDetails(Film film) {
-        if (film == null) return;
+    private void loadFilmDetailsBatch(List<Film> films) {
+        if (films.isEmpty()) {
+            return;
+        }
 
-        String genresSql = "SELECT g.* FROM genres g " +
+        // Собираем все ID фильмов
+        List<Long> filmIds = films.stream().map(Film::getId).toList();
+
+        // Формируем строку с плейсхолдерами (?, ?, ?) для IN-запроса
+        String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
+        // 1. Пакетная загрузка жанров
+        Map<Long, Set<Genre>> filmGenresMap = new HashMap<>();
+        String genresSql = "SELECT fg.film_id, g.id, g.name FROM genres g " +
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ?";
+                "WHERE fg.film_id IN (" + inSql + ")";
 
-        List<Genre> genreList = jdbcTemplate.query(genresSql, new GenreMapper(),
-                film.getId());
-        Set<Genre> genres = new HashSet<>(genreList);
-        film.setGenres(genres);
+        jdbcTemplate.query(genresSql, rs -> {
+            Long filmId = rs.getLong("film_id");
+            Genre genre = Genre.builder()
+                    .id(rs.getInt("id"))
+                    .name(rs.getString("name"))
+                    .build();
+            filmGenresMap.computeIfAbsent(filmId, k -> new HashSet<>()).add(genre);
+        }, filmIds.toArray());
 
-        String likesSql = "SELECT user_id FROM film_likes WHERE film_id = ?";
-        List<Long> likes = jdbcTemplate.queryForList(likesSql, Long.class,
-                film.getId());
-        film.setLikes(new HashSet<>(likes));
+        // 2. Пакетная загрузка лайков
+        Map<Long, Set<Long>> filmLikesMap = new HashMap<>();
+        String likesSql = "SELECT film_id, user_id FROM film_likes WHERE film_id IN (" + inSql + ")";
+
+        jdbcTemplate.query(likesSql, rs -> {
+            Long filmId = rs.getLong("film_id");
+            Long userId = rs.getLong("user_id");
+            filmLikesMap.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
+        }, filmIds.toArray());
+
+        for (Film film : films) {
+            film.setGenres(filmGenresMap.getOrDefault(film.getId(), new HashSet<>()));
+            film.setLikes(filmLikesMap.getOrDefault(film.getId(), new HashSet<>()));
+        }
     }
 }

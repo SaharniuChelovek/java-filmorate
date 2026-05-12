@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -69,12 +70,16 @@ public class FilmService {
 
         if (film.getMpa() != null) {
             mpaStorage.getById(film.getMpa().getId());
-            // Если не найдет, кинет NotFoundException
         }
 
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
-            for (Genre genre : film.getGenres()) {
-                genreStorage.getById(genre.getId());
+            List<Integer> genreIds = film.getGenres().stream()
+                    .map(Genre::getId)
+                    .toList();
+            Collection<Genre> existingGenres = genreStorage.findByIds(genreIds);
+            if (existingGenres.size() != genreIds.size()) {
+                throw new NotFoundException("Один или несколько жанров " +
+                        "не найдены");
             }
         }
 
@@ -86,16 +91,20 @@ public class FilmService {
             throw new ValidationException("Id должен быть указан");
         }
 
-        // Такая же проверка для обновления!
         if (newFilm.getMpa() != null) {
             mpaStorage.getById(newFilm.getMpa().getId());
         }
+
         if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
-            for (Genre genre : newFilm.getGenres()) {
-                genreStorage.getById(genre.getId());
+            List<Integer> genreIds = newFilm.getGenres().stream()
+                    .map(Genre::getId)
+                    .toList();
+            Collection<Genre> existingGenres = genreStorage.findByIds(genreIds);
+            if (existingGenres.size() != genreIds.size()) {
+                throw new NotFoundException("Жанр/жанры не найдены");
             }
         }
-        // Проверка что фильм существует
+
         filmStorage.getFilmById(newFilm.getId());
         validateFilm(newFilm);
         return filmStorage.update(newFilm);
