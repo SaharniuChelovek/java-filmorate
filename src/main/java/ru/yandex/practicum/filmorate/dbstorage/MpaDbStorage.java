@@ -35,11 +35,10 @@ public class MpaDbStorage implements MpaStorage {
 
         // Передаем лямбду-маппер вторым аргументом в метод query()
         List<Mpa> mpaList = jdbcTemplate.query(sql, (rs, rowNum) ->
-                        Mpa.builder()
-                                .id(rs.getInt("id"))
-                                .name(rs.getString("name"))
-                                .build()
-                , id);
+                Mpa.builder()
+                        .id(rs.getInt("id"))
+                        .name(rs.getString("name"))
+                        .build(), id);
 
         if (mpaList.isEmpty()) {
             throw new NotFoundException("Рейтинг MPA с id " + id
