@@ -33,7 +33,8 @@ public class UserController {
     }
 
     @PutMapping
-    public User update(@RequestBody User newUser) throws ValidationException {
+    public User update(@Valid @RequestBody User newUser)
+            throws ValidationException {
         return userService.update(newUser);
     }
 
@@ -53,7 +54,8 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+    public void removeFriend(@PathVariable Long id,
+                             @PathVariable Long friendId) {
         userService.removeFriend(id, friendId);
     }
 

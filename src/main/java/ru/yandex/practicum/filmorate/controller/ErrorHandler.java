@@ -28,10 +28,13 @@ public class ErrorHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    public ErrorResponse
+    handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
 
-        String errorMessage = e.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+        String errorMessage = e.getBindingResult()
+                .getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error
+                        .getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
         return new ErrorResponse(errorMessage);

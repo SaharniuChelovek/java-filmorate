@@ -3,18 +3,21 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Component
+@Qualifier("inMemoryUserStorage")
 public class InMemoryUserStorage implements UserStorage {
 
     private final Map<Long, User> users = new HashMap<>();
@@ -24,45 +27,30 @@ public class InMemoryUserStorage implements UserStorage {
         return users.values();
     }
 
-
     @Override
     public User create(User user) {
-        // проверка email
+
         log.info("Создается пользователь {}", user);
 
-        if (emailExists(user.getEmail())) {
-            log.error("попытка использовать имейл, который уже используется");
-            throw new ValidationException("Этот email уже используется");
-        }
         //проверка login
         if (user.getLogin().contains(" ")) {
             log.error("попытка ввода логина с пробелами");
             throw new ValidationException("В логине не должны быть пробелы");
         }
-        //замена имени если оно пустое
-        if (user.getName() == null || user.getName().isBlank()) {
-            String login = user.getLogin();
-            user.setName(login);
-            log.info("Имя было пустым, поэтому вместо него используется логин");
-        }
 
         // заполняем данные
         user.setId(getNextId());
-        user.setFriends(new HashSet<>()); //новому юзеру создаем множемтво друзей
+        user.setFriends(new HashMap<>());
 
         log.info("Пользоатель {} успешно создан", user);
         users.put(user.getId(), user);
         return user;
+
     }
 
     @Override
     public User update(User newUser) {
         log.info("Обновление пользоввателя {}", newUser);
-        // проверка id
-        if (newUser.getId() == null) {
-            log.error("id не указан");
-            throw new ValidationException("Id должен быть указан");
-        }
 
         if (!users.containsKey(newUser.getId())) {
             log.error("пользователя по заданному id не нашли");
@@ -70,16 +58,6 @@ public class InMemoryUserStorage implements UserStorage {
         }
 
         User oldUser = users.get(newUser.getId());
-
-        // проверка email (если он меняется)
-        if (newUser.getEmail() != null) {
-            if (emailExists(newUser.getEmail()) &&
-                    !newUser.getEmail().equals(oldUser.getEmail())) {
-                log.error("Попытка использования уже использованной почты на этапе апдейта");
-                throw new ValidationException("Этот email уже используется");
-            }
-            oldUser.setEmail(newUser.getEmail());
-        }
 
         if (newUser.getLogin() != null && newUser.getLogin().contains(" ")) {
             log.error("пробелы в логине на этапе апдейта");
@@ -113,7 +91,8 @@ public class InMemoryUserStorage implements UserStorage {
 
         if (!users.containsKey(id)) {
             log.error("Пользователь по id {} не найден", id);
-            throw new NotFoundException("Пользователь по id " + id + " не найден");
+            throw new NotFoundException("Пользователь по id " + id
+                    + " не найден");
         }
         log.info("Пользователь по id {} найден, возвращаем", id);
         return users.get(id);
@@ -133,12 +112,6 @@ public class InMemoryUserStorage implements UserStorage {
         log.info("Пользователь с id {} удален", id);
     }
 
-    // проверка существования email
-    private boolean emailExists(String email) {
-        return users.values().stream()
-                .anyMatch(user -> user.getEmail().equals(email));
-    }
-
     // генерация id
     private Long getNextId() {
         long currentMaxId = users.keySet()
@@ -149,5 +122,46 @@ public class InMemoryUserStorage implements UserStorage {
         return ++currentMaxId;
     }
 
+    public void addFriend(Long userId, Long friendId) {
+        User user = getUserById(userId);
+
+        User friend = getUserById(friendId);
+
+        if (user.getFriends().containsKey(friendId)) {
+            throw new ValidationException("Запрос уже отправлен");
+        }
+
+        user.getFriends().put(friendId, FriendshipStatus.PENDING);
+        friend.getFriends().put(userId, FriendshipStatus.PENDING);
+    }
+
+    public void removeFriend(Long userId, Long friendId) {
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+        user.getFriends().remove(friendId);
+        friend.getFriends().remove(userId);
+    }
+
+    public List<User> getFriends(Long userId) {
+        User user = getUserById(userId);
+
+        return user.getFriends().entrySet().stream()
+                .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
+                .map(entry -> getUserById(entry.getKey()))
+                .toList();
+    }
+
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        User user = getUserById(userId);
+        User otherUser = getUserById(otherId);
+
+        return user.getFriends().entrySet().stream()
+                .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
+                .map(Map.Entry::getKey)
+                .filter(id -> otherUser.getFriends().get(id)
+                        == FriendshipStatus.CONFIRMED)
+                .map(this::getUserById)
+                .toList();
+    }
 
 }

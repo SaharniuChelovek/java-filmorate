@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -17,7 +18,8 @@ public class User {
 
     private Long id;
     @NotNull
-    @NotBlank(message = "Логин не может быть пустым или состоять только из пробелов")
+    @NotBlank(message = "Логин не может быть пустым или состоять " +
+            "только из пробелов")
     @NoSpaces
     private String login;
 
@@ -31,5 +33,7 @@ public class User {
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
 
-    private Map<Long, FriendshipStatus> friends;
+    @Builder.Default
+    private Map<Long, FriendshipStatus> friends = new HashMap<>();
+
 }
